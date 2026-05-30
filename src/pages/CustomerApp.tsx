@@ -250,9 +250,15 @@ export const CustomerApp: React.FC<CustomerAppProps> = ({ tableFromUrl }) => {
       {view === 'welcome' && (
         <div style={styles.welcomePage}>
           <div style={styles.heroCenter}>
-            <div style={styles.coffeeIconCircle}>
-              {tableNumber ? <Coffee size={42} color="#5e454b" /> : <QrCode size={42} color="#5e454b" />}
-            </div>
+            {tableNumber ? (
+              <div style={styles.logoCircle}>
+                <img src="/logo.jpg" alt="El's Day Cafe Logo" style={styles.logoImage} />
+              </div>
+            ) : (
+              <div style={styles.coffeeIconCircle}>
+                <QrCode size={42} color="#5e454b" />
+              </div>
+            )}
             <h1 style={styles.welcomeTitle}>{tableNumber ? 'Selamat Datang!' : 'Scan QR Code Meja'}</h1>
             <p style={styles.welcomeSubtitle}>
               {tableNumber ? "El's Day Café siap menemani hari Anda." : 'Silakan pindai QR Code di meja Anda untuk memulai pemesanan E-Menu.'}
@@ -312,15 +318,20 @@ export const CustomerApp: React.FC<CustomerAppProps> = ({ tableFromUrl }) => {
         <div style={styles.flexColumn}>
           {/* Header */}
           <div style={styles.header}>
-            <div>
-              <h2 
-                style={{ ...styles.brandTitle, cursor: 'pointer' }} 
-                onClick={() => window.location.href = '/admin'}
-                title="Buka Kasir/Admin Portal"
-              >
-                El's Day Café
-              </h2>
-              <span style={styles.welcomeGreeting}>Halo, {customerName}! (Meja {tableNumber})</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ width: '44px', height: '44px', borderRadius: '50%', overflow: 'hidden', border: '1.5px solid #fad2e1', flexShrink: 0 }}>
+                <img src="/logo.jpg" alt="El's Day Cafe Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              </div>
+              <div>
+                <h2 
+                  style={{ ...styles.brandTitle, cursor: 'pointer' }} 
+                  onClick={() => window.location.href = '/admin'}
+                  title="Buka Kasir/Admin Portal"
+                >
+                  El's Day Café
+                </h2>
+                <span style={styles.welcomeGreeting}>Halo, {customerName}! (Meja {tableNumber})</span>
+              </div>
             </div>
             <div style={{ position: 'relative' }} onClick={() => itemCount > 0 && setView('cart')}>
               <div style={styles.cartIconCircle}>
@@ -1740,5 +1751,20 @@ const styles: Record<string, React.CSSProperties> = {
     color: '#9ca3af',
     cursor: 'pointer',
     lineHeight: 1
+  },
+  logoCircle: {
+    width: '120px',
+    height: '120px',
+    borderRadius: '50%',
+    overflow: 'hidden',
+    border: '3px solid #fad2e1',
+    boxShadow: '0 8px 24px rgba(94, 69, 75, 0.1)',
+    marginBottom: '16px',
+    backgroundColor: '#ffffff'
+  },
+  logoImage: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover'
   }
 };

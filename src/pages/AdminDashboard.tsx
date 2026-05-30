@@ -154,7 +154,9 @@ export const AdminDashboard: React.FC = () => {
       {/* Sidebar Panel */}
       <aside style={styles.sidebar}>
         <div style={styles.sidebarBrand}>
-          <div style={styles.sidebarBrandLogo}>☕</div>
+          <div style={{ width: '44px', height: '44px', borderRadius: '50%', overflow: 'hidden', border: '1.5px solid #fad2e1', flexShrink: 0 }}>
+            <img src="/logo.jpg" alt="El's Day Cafe Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          </div>
           <div>
             <h2 style={styles.sidebarBrandName}>El's Admin</h2>
             <span style={styles.sidebarBrandRole}>Café Manager</span>
