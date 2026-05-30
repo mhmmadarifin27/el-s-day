@@ -36,24 +36,25 @@ export const CustomerApp: React.FC<CustomerAppProps> = ({ tableFromUrl }) => {
   // Modal for editing Item Notes
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [tempNoteText, setTempNoteText] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Fetch menus initially and setup real-time sync
   useEffect(() => {
-    setMenus(db.getMenus());
+    db.getMenus().then(setMenus);
     
     // Listen for menu changes from Admin
     const unsubMenu = db.onMenuChange(() => {
-      setMenus(db.getMenus());
+      db.getMenus().then(setMenus);
     });
 
     // Listen for order status changes from Admin in real-time
     const unsubOrder = db.onOrderChange((event) => {
       if (currentOrder && event.type === 'ORDER_STATUS_CHANGED' && event.orderId === currentOrder.id) {
         // Fetch fresh orders list to update current order status
-        const freshOrders = db.getOrders();
-        const updated = freshOrders.find(o => o.id === currentOrder.id);
-        if (updated) {
-          setCurrentOrder(updated);
+        db.getOrders().then(freshOrders => {
+          const updated = freshOrders.find(o => o.id === currentOrder.id);
+          if (updated) {
+            setCurrentOrder(updated);
           
           // Confetti or Sound on completion
           if (event.status === 'completed') {
@@ -74,20 +75,22 @@ export const CustomerApp: React.FC<CustomerAppProps> = ({ tableFromUrl }) => {
             }
           }
         }
-      }
-    });
+      });
+    }
+  });
 
     // Parse existing active order if stored in localStorage
     const savedActiveOrderId = localStorage.getItem('els_active_order_id');
     if (savedActiveOrderId) {
-      const freshOrders = db.getOrders();
-      const active = freshOrders.find(o => o.id === savedActiveOrderId);
-      if (active && active.status !== 'completed' && active.status !== 'cancelled') {
-        setCurrentOrder(active);
-        setCustomerName(active.customer_name);
-        setTableNumber(active.table_number);
-        setView('status');
-      }
+      db.getOrders().then(freshOrders => {
+        const active = freshOrders.find(o => o.id === savedActiveOrderId);
+        if (active && active.status !== 'completed' && active.status !== 'cancelled') {
+          setCurrentOrder(active);
+          setCustomerName(active.customer_name);
+          setTableNumber(active.table_number);
+          setView('status');
+        }
+      });
     }
 
     return () => {
@@ -163,27 +166,32 @@ export const CustomerApp: React.FC<CustomerAppProps> = ({ tableFromUrl }) => {
   const { itemCount, subtotal, tax, total } = getCartSummary();
 
   // Create Order Action
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
     if (paymentMethod === 'transfer') {
       setView('upload_proof');
     } else {
       // Cash Order
+      setIsSubmitting(true);
       const cartItems = Object.entries(cart).map(([menuId, item]) => ({
         menuId,
         quantity: item.quantity,
         notes: item.notes
       }));
       
-      const order = db.createOrder(tableNumber, customerName, cartItems, 'cash');
-      setCurrentOrder(order);
-      localStorage.setItem('els_active_order_id', order.id);
-      setCart({});
-      setView('status');
+      const order = await db.createOrder(tableNumber, customerName, cartItems, 'cash');
+      if (order) {
+        setCurrentOrder(order);
+        localStorage.setItem('els_active_order_id', order.id);
+        setCart({});
+        setView('status');
+      }
+      setIsSubmitting(false);
     }
   };
 
   // Upload proof simulation
-  const handleUploadProofAndSubmit = (mockSelect: boolean = false) => {
+  const handleUploadProofAndSubmit = async (mockSelect: boolean = false) => {
+    setIsSubmitting(true);
     let proofBase64 = paymentProof;
     if (mockSelect || !proofBase64) {
       // Simulate receipt image
@@ -196,11 +204,14 @@ export const CustomerApp: React.FC<CustomerAppProps> = ({ tableFromUrl }) => {
       notes: item.notes
     }));
     
-    const order = db.createOrder(tableNumber, customerName, cartItems, 'transfer', proofBase64);
-    setCurrentOrder(order);
-    localStorage.setItem('els_active_order_id', order.id);
-    setCart({});
-    setView('status');
+    const order = await db.createOrder(tableNumber, customerName, cartItems, 'transfer', proofBase64);
+    if (order) {
+      setCurrentOrder(order);
+      localStorage.setItem('els_active_order_id', order.id);
+      setCart({});
+      setView('status');
+    }
+    setIsSubmitting(false);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -279,7 +290,13 @@ export const CustomerApp: React.FC<CustomerAppProps> = ({ tableFromUrl }) => {
           {/* Header */}
           <div style={styles.header}>
             <div>
-              <h2 style={styles.brandTitle}>El's Day Café</h2>
+              <h2 
+                style={{ ...styles.brandTitle, cursor: 'pointer' }} 
+                onClick={() => window.location.href = '/admin'}
+                title="Buka Kasir/Admin Portal"
+              >
+                El's Day Café
+              </h2>
               <span style={styles.welcomeGreeting}>Halo, {customerName}! (Meja {tableNumber})</span>
             </div>
             <div style={{ position: 'relative' }} onClick={() => itemCount > 0 && setView('cart')}>
@@ -538,8 +555,12 @@ export const CustomerApp: React.FC<CustomerAppProps> = ({ tableFromUrl }) => {
 
           {/* Bottom Sticky CTA Button */}
           <div style={styles.stickyBottomCheckoutBar}>
-            <button style={{ ...styles.btn, ...styles.btnPrimary, width: '100%' }} onClick={handlePlaceOrder}>
-              Pesan Sekarang
+            <button 
+              style={{ ...styles.btn, ...styles.btnPrimary, width: '100%', opacity: isSubmitting ? 0.7 : 1 }} 
+              disabled={isSubmitting} 
+              onClick={handlePlaceOrder}
+            >
+              {isSubmitting ? 'Memproses...' : 'Pesan Sekarang'}
             </button>
           </div>
         </div>
@@ -620,12 +641,12 @@ export const CustomerApp: React.FC<CustomerAppProps> = ({ tableFromUrl }) => {
 
           <div style={styles.stickyBottomCheckoutBar}>
             <button 
-              className={`btn btn-primary ${!paymentProof ? 'btn-disabled' : ''}`}
-              style={{ width: '100%' }}
-              disabled={!paymentProof}
+              className={`btn btn-primary ${(!paymentProof || isSubmitting) ? 'btn-disabled' : ''}`}
+              style={{ width: '100%', opacity: isSubmitting ? 0.7 : 1 }}
+              disabled={!paymentProof || isSubmitting}
               onClick={() => handleUploadProofAndSubmit(false)}
             >
-              Kirim Bukti Transfer
+              {isSubmitting ? 'Mengunggah...' : 'Kirim Bukti Transfer'}
             </button>
           </div>
         </div>
@@ -636,7 +657,13 @@ export const CustomerApp: React.FC<CustomerAppProps> = ({ tableFromUrl }) => {
         <div style={styles.flexColumn}>
           {/* Header */}
           <div style={styles.header}>
-            <h2 style={styles.brandTitle}>El's Day Café</h2>
+            <h2 
+              style={{ ...styles.brandTitle, cursor: 'pointer' }} 
+              onClick={() => window.location.href = '/admin'}
+              title="Buka Kasir/Admin Portal"
+            >
+              El's Day Café
+            </h2>
             <button style={styles.newOrderBtn} onClick={handleStartNewOrder}>
               Pesan Baru
             </button>

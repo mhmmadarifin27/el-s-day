@@ -1,4 +1,9 @@
-// El's Day Cafe - Local Database & Broadcast Sync Service (Supabase Simulation)
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export type MenuCategory = 'makanan' | 'minuman' | 'snack' | 'dessert';
 export type OrderStatus = 'waiting_payment' | 'checking_payment' | 'paid' | 'completed' | 'cancelled';
@@ -19,7 +24,7 @@ export interface OrderItem {
   menu_id: string;
   quantity: number;
   notes?: string;
-  // Join properties
+  // Join properties appended dynamically by UI mapping
   menu_name?: string;
   menu_price?: number;
   menu_image?: string;
@@ -31,298 +36,168 @@ export interface Order {
   customer_name: string;
   total_price: number;
   payment_method: PaymentMethod;
-  payment_proof?: string; // Base64 or mock URL string
+  payment_proof?: string;
   status: OrderStatus;
   created_at: string;
   items?: OrderItem[];
 }
 
-// Initial Menu Seed Data
-const INITIAL_MENUS: MenuItem[] = [
-  {
-    id: 'menu-1',
-    name: 'Nasi Goreng Spesial',
-    price: 35000,
-    category: 'makanan',
-    image_url: 'https://images.unsplash.com/photo-1512058564366-18510be2db19?w=600&auto=format&fit=crop&q=80',
-    is_available: true
-  },
-  {
-    id: 'menu-2',
-    name: 'Mie Goreng Jawa',
-    price: 30000,
-    category: 'makanan',
-    image_url: 'https://images.unsplash.com/photo-1585032226651-759b368d7246?w=600&auto=format&fit=crop&q=80',
-    is_available: false // Out of stock as per design
-  },
-  {
-    id: 'menu-3',
-    name: 'Ayam Bakar Madu',
-    price: 40000,
-    category: 'makanan',
-    image_url: 'https://images.unsplash.com/photo-1598515214211-89d3e73ae83b?w=600&auto=format&fit=crop&q=80',
-    is_available: true
-  },
-  {
-    id: 'menu-4',
-    name: 'Spaghetti Carbonara',
-    price: 45000,
-    category: 'makanan',
-    image_url: 'https://images.unsplash.com/photo-1612874742237-6526221588e3?w=600&auto=format&fit=crop&q=80',
-    is_available: true
-  },
-  {
-    id: 'menu-5',
-    name: 'Iced Caramel Macchiato',
-    price: 35000,
-    category: 'minuman',
-    image_url: 'https://images.unsplash.com/photo-1595434061149-865751f215a7?w=600&auto=format&fit=crop&q=80',
-    is_available: true
-  },
-  {
-    id: 'menu-6',
-    name: 'Matcha Latte',
-    price: 32000,
-    category: 'minuman',
-    image_url: 'https://images.unsplash.com/photo-1536256263959-770b48d82b0a?w=600&auto=format&fit=crop&q=80',
-    is_available: true
-  },
-  {
-    id: 'menu-7',
-    name: 'Butter Croissant',
-    price: 25000,
-    category: 'snack',
-    image_url: 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=600&auto=format&fit=crop&q=80',
-    is_available: true
-  },
-  {
-    id: 'menu-8',
-    name: 'Waffle Sweet Strawberry',
-    price: 28000,
-    category: 'dessert',
-    image_url: 'https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?w=600&auto=format&fit=crop&q=80',
-    is_available: true
-  }
-];
+export type SyncEvent = { type: 'ORDERS_CHANGED' } | { type: 'MENUS_CHANGED' } | { type: 'ORDER_STATUS_CHANGED'; orderId: string; status: OrderStatus };
 
-// Initial Order seeds (for demonstration purposes on admin dashboard)
-const INITIAL_ORDERS: Order[] = [
-  {
-    id: 'order-101',
-    table_number: '4',
-    customer_name: 'Budi S.',
-    total_price: 85000,
-    payment_method: 'transfer',
-    payment_proof: 'https://images.unsplash.com/photo-1616077168079-7e09a677fb2c?w=600&auto=format&fit=crop&q=80',
-    status: 'checking_payment',
-    created_at: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
-    items: [
-      { id: 'item-101-1', order_id: 'order-101', menu_id: 'menu-5', quantity: 2, notes: 'Es batu dikit aja' },
-      { id: 'item-101-2', order_id: 'order-101', menu_id: 'menu-7', quantity: 1, notes: 'Hangatkan croissant' }
-    ]
-  },
-  {
-    id: 'order-102',
-    table_number: 'Bawa Pulang',
-    customer_name: 'Siska',
-    total_price: 67000,
-    payment_method: 'cash',
-    status: 'paid',
-    created_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-    items: [
-      { id: 'item-102-1', order_id: 'order-102', menu_id: 'menu-5', quantity: 1, notes: 'Less sugar untuk latte' },
-      { id: 'item-102-2', order_id: 'order-102', menu_id: 'menu-6', quantity: 1 }
-    ]
-  },
-  {
-    id: 'order-103',
-    table_number: '12',
-    customer_name: 'Anton',
-    total_price: 125000,
-    payment_method: 'cash',
-    status: 'completed',
-    created_at: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
-    items: [
-      { id: 'item-103-1', order_id: 'order-103', menu_id: 'menu-1', quantity: 3 },
-      { id: 'item-103-2', order_id: 'order-103', menu_id: 'menu-6', quantity: 1 }
-    ]
-  }
-];
-
-// Initialize Broadcast Channel
-const syncChannel = new BroadcastChannel('els_day_sync_channel');
-
-// Listeners Registry
-type SyncEvent = { type: 'ORDERS_CHANGED' } | { type: 'MENUS_CHANGED' } | { type: 'ORDER_STATUS_CHANGED'; orderId: string; status: OrderStatus };
-const menuListeners: (() => void)[] = [];
-const orderListeners: ((event: SyncEvent) => void)[] = [];
-
-syncChannel.onmessage = (event: MessageEvent<SyncEvent>) => {
-  const syncEvent = event.data;
-  if (syncEvent.type === 'MENUS_CHANGED') {
-    menuListeners.forEach(listener => listener());
-  } else {
-    orderListeners.forEach(listener => listener(syncEvent));
-  }
-};
-
-const notifyChange = (event: SyncEvent) => {
-  syncChannel.postMessage(event);
-  if (event.type === 'MENUS_CHANGED') {
-    menuListeners.forEach(listener => listener());
-  } else {
-    orderListeners.forEach(listener => listener(event));
-  }
-};
-
-// Database Access helpers
+// Database Access helpers (Now Asynchronous for Supabase)
 export const db = {
   // --- MENU OPERATIONS ---
-  getMenus(): MenuItem[] {
-    const menusJson = localStorage.getItem('els_menus');
-    if (!menusJson) {
-      localStorage.setItem('els_menus', JSON.stringify(INITIAL_MENUS));
-      return INITIAL_MENUS;
+  async getMenus(): Promise<MenuItem[]> {
+    const { data, error } = await supabase.from('menus').select('*').order('created_at', { ascending: true });
+    if (error) {
+      console.error('Error fetching menus:', error);
+      return [];
     }
-    return JSON.parse(menusJson);
+    return data || [];
   },
 
-  saveMenus(menus: MenuItem[]) {
-    localStorage.setItem('els_menus', JSON.stringify(menus));
-    notifyChange({ type: 'MENUS_CHANGED' });
+  async updateMenuAvailability(menuId: string, isAvailable: boolean) {
+    const { error } = await supabase.from('menus').update({ is_available: isAvailable }).eq('id', menuId);
+    if (error) console.error('Error updating menu availability:', error);
   },
 
-  updateMenuAvailability(menuId: string, isAvailable: boolean) {
-    const menus = this.getMenus();
-    const updated = menus.map(m => m.id === menuId ? { ...m, is_available: isAvailable } : m);
-    this.saveMenus(updated);
-  },
-
-  addMenu(name: string, price: number, category: MenuCategory, imageUrl: string) {
-    const menus = this.getMenus();
-    const newMenu: MenuItem = {
-      id: 'menu-' + Math.random().toString(36).substr(2, 9),
-      name,
-      price,
-      category,
-      image_url: imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80',
+  async addMenu(name: string, price: number, category: MenuCategory, imageUrl: string) {
+    const { data, error } = await supabase.from('menus').insert([{
+      name, 
+      price, 
+      category, 
+      image_url: imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80', 
       is_available: true
-    };
-    menus.push(newMenu);
-    this.saveMenus(menus);
-    return newMenu;
+    }]).select();
+    if (error) console.error('Error adding menu:', error);
+    return data ? data[0] : null;
   },
 
-  updateMenu(id: string, name: string, price: number, category: MenuCategory, imageUrl: string, isAvailable: boolean) {
-    const menus = this.getMenus();
-    const updated = menus.map(m => m.id === id ? { ...m, name, price, category, image_url: imageUrl, is_available: isAvailable } : m);
-    this.saveMenus(updated);
+  async updateMenu(id: string, name: string, price: number, category: MenuCategory, imageUrl: string, isAvailable: boolean) {
+    const { error } = await supabase.from('menus').update({
+      name, price, category, image_url: imageUrl, is_available: isAvailable
+    }).eq('id', id);
+    if (error) console.error('Error updating menu:', error);
   },
 
-  deleteMenu(id: string) {
-    const menus = this.getMenus();
-    const filtered = menus.filter(m => m.id !== id);
-    this.saveMenus(filtered);
+  async deleteMenu(id: string) {
+    const { error } = await supabase.from('menus').delete().eq('id', id);
+    if (error) console.error('Error deleting menu:', error);
   },
 
   // --- ORDER OPERATIONS ---
-  getOrders(): Order[] {
-    const ordersJson = localStorage.getItem('els_orders');
-    if (!ordersJson) {
-      // In order to link correctly, seed fully populated items
-      localStorage.setItem('els_orders', JSON.stringify(INITIAL_ORDERS));
-      return INITIAL_ORDERS;
+  async getOrders(): Promise<Order[]> {
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*, order_items(*, menus(name, price, image_url))')
+      .order('created_at', { ascending: false });
+      
+    if (error) {
+      console.error('Error fetching orders:', error);
+      return [];
     }
-    const orders: Order[] = JSON.parse(ordersJson);
     
-    // Inject menu info into items for convenience
-    const menus = this.getMenus();
-    return orders.map(order => {
-      const items = (order.items || []).map(item => {
-        const menu = menus.find(m => m.id === item.menu_id);
-        return {
-          ...item,
-          menu_name: menu?.name || 'Item Terhapus',
-          menu_price: menu?.price || 0,
-          menu_image: menu?.image_url
-        };
-      });
-      return { ...order, items };
-    });
+    // Map Supabase nested relational structure to our UI structure
+    return (data || []).map((order: any) => ({
+      ...order,
+      items: order.order_items?.map((item: any) => ({
+        ...item,
+        menu_name: item.menus?.name || 'Item Terhapus',
+        menu_price: item.menus?.price || 0,
+        menu_image: item.menus?.image_url
+      }))
+    }));
   },
 
-  saveOrders(orders: Order[]) {
-    localStorage.setItem('els_orders', JSON.stringify(orders));
-  },
-
-  createOrder(
+  async createOrder(
     tableNumber: string,
     customerName: string,
     cartItems: { menuId: string; quantity: number; notes?: string }[],
     paymentMethod: PaymentMethod,
     paymentProof?: string
-  ): Order {
-    const orders = this.getOrders();
-    const menus = this.getMenus();
-    const orderId = 'ELS-' + Math.floor(1000 + Math.random() * 9000);
+  ): Promise<Order | null> {
     
+    // 1. Calculate total price server-side safely via menu lookup
+    const { data: menus } = await supabase.from('menus').select('id, price');
     let totalPrice = 0;
-    const items: OrderItem[] = cartItems.map((cartItem, idx) => {
-      const menu = menus.find(m => m.id === cartItem.menuId);
-      const itemPrice = menu ? menu.price : 0;
-      totalPrice += itemPrice * cartItem.quantity;
-      
-      return {
-        id: `item-${orderId}-${idx}`,
-        order_id: orderId,
-        menu_id: cartItem.menuId,
-        quantity: cartItem.quantity,
-        notes: cartItem.notes,
-        menu_name: menu?.name,
-        menu_price: itemPrice,
-        menu_image: menu?.image_url
-      };
+    cartItems.forEach(item => {
+      const menu = menus?.find(m => m.id === item.menuId);
+      if (menu) totalPrice += menu.price * item.quantity;
     });
 
-    const newOrder: Order = {
-      id: orderId,
-      table_number: tableNumber,
-      customer_name: customerName,
-      total_price: totalPrice,
-      payment_method: paymentMethod,
-      payment_proof: paymentProof,
-      status: paymentMethod === 'transfer' ? 'checking_payment' : 'waiting_payment',
-      created_at: new Date().toISOString(),
-      items: items
-    };
+    // 2. Insert Order Header
+    const status = paymentMethod === 'transfer' ? 'checking_payment' : 'waiting_payment';
+    const { data: orderData, error: orderError } = await supabase
+      .from('orders')
+      .insert([{
+        table_number: tableNumber,
+        customer_name: customerName,
+        total_price: totalPrice,
+        payment_method: paymentMethod,
+        payment_proof: paymentProof,
+        status: status
+      }])
+      .select()
+      .single();
 
-    orders.unshift(newOrder); // Add to the top of list
-    this.saveOrders(orders);
-    notifyChange({ type: 'ORDERS_CHANGED' });
-    return newOrder;
+    if (orderError || !orderData) {
+      console.error('Error creating order:', orderError);
+      return null;
+    }
+
+    // 3. Insert Order Items Junctions
+    const itemsToInsert = cartItems.map(item => ({
+      order_id: orderData.id,
+      menu_id: item.menuId,
+      quantity: item.quantity,
+      notes: item.notes
+    }));
+
+    const { error: itemsError } = await supabase.from('order_items').insert(itemsToInsert);
+    if (itemsError) console.error('Error inserting order items:', itemsError);
+    
+    return orderData;
   },
 
-  updateOrderStatus(orderId: string, status: OrderStatus) {
-    const orders = this.getOrders();
-    const updated = orders.map(o => o.id === orderId ? { ...o, status } : o);
-    this.saveOrders(updated);
-    notifyChange({ type: 'ORDER_STATUS_CHANGED', orderId, status });
+  async updateOrderStatus(orderId: string, status: OrderStatus) {
+    const { error } = await supabase.from('orders').update({ status }).eq('id', orderId);
+    if (error) console.error('Error updating order status:', error);
   },
 
-  // --- SYNC EVENT LISTENERS ---
+  // --- SYNC EVENT LISTENERS (Supabase Realtime) ---
   onMenuChange(callback: () => void) {
-    menuListeners.push(callback);
+    const subscription = supabase
+      .channel('public:menus')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'menus' }, () => {
+        callback();
+      })
+      .subscribe();
+
     return () => {
-      const idx = menuListeners.indexOf(callback);
-      if (idx > -1) menuListeners.splice(idx, 1);
+      supabase.removeChannel(subscription);
     };
   },
 
   onOrderChange(callback: (event: SyncEvent) => void) {
-    orderListeners.push(callback);
+    const subscription = supabase
+      .channel('public:orders')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          callback({ type: 'ORDERS_CHANGED' });
+        } else if (payload.eventType === 'UPDATE') {
+          callback({ 
+            type: 'ORDER_STATUS_CHANGED', 
+            orderId: payload.new.id, 
+            status: payload.new.status 
+          });
+        } else if (payload.eventType === 'DELETE') {
+           callback({ type: 'ORDERS_CHANGED' });
+        }
+      })
+      .subscribe();
+
     return () => {
-      const idx = orderListeners.indexOf(callback);
-      if (idx > -1) orderListeners.splice(idx, 1);
+      supabase.removeChannel(subscription);
     };
   }
 };

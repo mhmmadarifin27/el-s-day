@@ -33,12 +33,12 @@ export const AdminDashboard: React.FC = () => {
 
   // Initial load and real-time synchronization
   useEffect(() => {
-    setOrders(db.getOrders());
-    setMenus(db.getMenus());
+    db.getOrders().then(setOrders);
+    db.getMenus().then(setMenus);
 
     // Setup listener for order changes (real-time websocket simulation)
     const unsubOrder = db.onOrderChange((event) => {
-      setOrders(db.getOrders());
+      db.getOrders().then(setOrders);
       
       // Play a ringing chime when a new order arrives
       if (event.type === 'ORDERS_CHANGED') {
@@ -57,7 +57,7 @@ export const AdminDashboard: React.FC = () => {
 
     // Setup listener for menu changes
     const unsubMenu = db.onMenuChange(() => {
-      setMenus(db.getMenus());
+      db.getMenus().then(setMenus);
     });
 
     return () => {
@@ -66,13 +66,15 @@ export const AdminDashboard: React.FC = () => {
     };
   }, [soundEnabled]);
 
-  const handleToggleMenuAvailability = (menuId: string, currentVal: boolean) => {
-    db.updateMenuAvailability(menuId, !currentVal);
+  const handleToggleMenuAvailability = async (menuId: string, currentVal: boolean) => {
+    await db.updateMenuAvailability(menuId, !currentVal);
+    db.getMenus().then(setMenus);
   };
 
   // Status transitions based on standard finite state machines
-  const handleUpdateStatus = (orderId: string, nextStatus: OrderStatus) => {
-    db.updateOrderStatus(orderId, nextStatus);
+  const handleUpdateStatus = async (orderId: string, nextStatus: OrderStatus) => {
+    await db.updateOrderStatus(orderId, nextStatus);
+    db.getOrders().then(setOrders);
   };
 
   // Calculate high level metrics
@@ -116,12 +118,12 @@ export const AdminDashboard: React.FC = () => {
     setMenuModalOpen(true);
   };
 
-  const handleSaveMenu = (e: React.FormEvent) => {
+  const handleSaveMenu = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!menuFormName.trim() || menuFormPrice <= 0) return;
 
     if (editingMenu) {
-      db.updateMenu(
+      await db.updateMenu(
         editingMenu.id,
         menuFormName,
         menuFormPrice,
@@ -130,14 +132,16 @@ export const AdminDashboard: React.FC = () => {
         editingMenu.is_available
       );
     } else {
-      db.addMenu(menuFormName, menuFormPrice, menuFormCategory, menuFormImage);
+      await db.addMenu(menuFormName, menuFormPrice, menuFormCategory, menuFormImage);
     }
+    db.getMenus().then(setMenus);
     setMenuModalOpen(false);
   };
 
-  const handleDeleteMenu = (id: string) => {
+  const handleDeleteMenu = async (id: string) => {
     if (window.confirm('Apakah Anda yakin ingin menghapus menu ini?')) {
-      db.deleteMenu(id);
+      await db.deleteMenu(id);
+      db.getMenus().then(setMenus);
     }
   };
 
@@ -265,7 +269,7 @@ export const AdminDashboard: React.FC = () => {
             <div style={styles.tableSection}>
               <div style={styles.tableSectionHeader}>
                 <h3 style={styles.tableSectionTitle}>Aktivitas Transaksi Terbaru</h3>
-                <button className="btn btn-outline" style={{ padding: '8px 16px', fontSize: '0.8rem' }} onClick={() => setOrders(db.getOrders())}>
+                <button className="btn btn-outline" style={{ padding: '8px 16px', fontSize: '0.8rem' }} onClick={() => db.getOrders().then(setOrders)}>
                   <RefreshCw size={12} style={{ marginRight: '6px' }} /> Refres
                 </button>
               </div>

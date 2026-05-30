@@ -39,27 +39,6 @@ function App() {
       ) : (
         <CustomerApp tableFromUrl={tableNumber} />
       )}
-
-      {/* Floating Simulation Helper Controller - ONLY for local developer demonstration */}
-      <div style={styles.floatingSimController}>
-        {isAdmin ? (
-          <button 
-            style={styles.simPill}
-            onClick={() => navigateTo('/', `?table=${tableNumber}`)}
-          >
-            <Smartphone size={14} style={{ marginRight: '6px' }} />
-            Tampilan HP Pelanggan (Meja {tableNumber})
-          </button>
-        ) : (
-          <button 
-            style={styles.simPill}
-            onClick={() => navigateTo('/admin')}
-          >
-            <Layers size={14} style={{ marginRight: '6px' }} />
-            Buka Kasir/Admin Portal
-          </button>
-        )}
-      </div>
     </>
   );
 }
