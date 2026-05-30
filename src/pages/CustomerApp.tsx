@@ -254,29 +254,14 @@ export const CustomerApp: React.FC<CustomerAppProps> = ({ tableFromUrl }) => {
 
           {!tableNumber ? (
             <div style={styles.welcomeCard} className="animate-slide-up">
-              <p style={{ fontSize: '0.85rem', color: '#6b7280', textAlign: 'center', lineHeight: '1.5', margin: '0 0 16px 0' }}>
-                <strong>Petunjuk Pengetesan Simulator:</strong><br />
-                Buka <strong>Dashboard Admin</strong> di perangkat/tab lain, lalu masuk ke menu <strong>"Meja & QR Code"</strong> dan scan barcode meja (atau klik 'Buka Simulasi Menu').
-              </p>
-              
-              <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: '16px', width: '100%' }}>
-                <label className="form-label" style={{ textAlign: 'center', display: 'block', marginBottom: '8px', fontWeight: '700' }}>
-                  Atau pilih nomor meja secara manual untuk uji cepat:
-                </label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-                  {[1, 2, 3, 4, 5, 6].map((num) => (
-                    <button
-                      key={num}
-                      className="btn btn-outline"
-                      style={{ padding: '8px', fontSize: '0.82rem', borderRadius: '10px', border: '1.5px solid #5e454b', fontWeight: '700' }}
-                      onClick={() => {
-                        window.location.search = `?table=${num}`;
-                      }}
-                    >
-                      Meja {num}
-                    </button>
-                  ))}
-                </div>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', padding: '12px 0' }}>
+                <span style={{ fontSize: '3rem' }}>📸</span>
+                <p style={{ fontSize: '0.9rem', color: '#5e454b', fontWeight: '700', textAlign: 'center', margin: 0 }}>
+                  Fitur Pemesanan Terkunci
+                </p>
+                <p style={{ fontSize: '0.82rem', color: '#6b7280', textAlign: 'center', lineHeight: '1.5', margin: 0 }}>
+                  Untuk memesan hidangan, silakan arahkan kamera HP Anda dan pindai stiker QR Code yang tertera di meja fisik Anda.
+                </p>
               </div>
             </div>
           ) : (
