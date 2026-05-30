@@ -809,8 +809,10 @@ export const CustomerApp: React.FC<CustomerAppProps> = ({ tableFromUrl }) => {
               style={{ width: '100%', border: '1.5px solid #5e454b' }}
               onClick={() => {
                 // Refresh status manual
-                const fresh = db.getOrders().find(o => o.id === currentOrder.id);
-                if (fresh) setCurrentOrder(fresh);
+                db.getOrders().then(freshOrders => {
+                  const fresh = freshOrders.find(o => o.id === currentOrder.id);
+                  if (fresh) setCurrentOrder(fresh);
+                });
               }}
             >
               Perbarui Status
