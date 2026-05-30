@@ -2,7 +2,10 @@ import { useState, useEffect } from 'react';
 import { CustomerApp } from './pages/CustomerApp';
 import { AdminDashboard } from './pages/AdminDashboard';function App() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
-  const [tableNumber, setTableNumber] = useState('');
+  const [tableNumber, setTableNumber] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('table') || '';
+  });
 
   // Detect path changes and query strings
   useEffect(() => {

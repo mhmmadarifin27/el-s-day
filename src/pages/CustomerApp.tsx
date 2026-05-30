@@ -38,6 +38,13 @@ export const CustomerApp: React.FC<CustomerAppProps> = ({ tableFromUrl }) => {
   const [tempNoteText, setTempNoteText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Synchronize state with the tableFromUrl prop when it updates (e.g. from scanning a new QR code)
+  useEffect(() => {
+    if (tableFromUrl) {
+      setTableNumber(tableFromUrl);
+    }
+  }, [tableFromUrl]);
+
   // Fetch menus initially and setup real-time sync
   useEffect(() => {
     db.getMenus().then(setMenus);
