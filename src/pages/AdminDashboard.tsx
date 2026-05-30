@@ -2,15 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { 
   TrendingUp, Users, ShoppingBag, Coffee, 
   Plus, Edit2, Trash2, Check, X, 
-  Eye, Bell, RefreshCw, Layers 
+  Eye, Bell, RefreshCw, Layers, QrCode
 } from 'lucide-react';
 import { db } from '../services/db';
 import type { MenuItem, Order, OrderStatus, MenuCategory } from '../services/db';
 import { Modal } from '../components/Modal';
 
 export const AdminDashboard: React.FC = () => {
-  // Navigation active tab: 'dashboard' | 'orders' | 'menus'
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'orders' | 'menus'>('orders');
+  // Navigation active tab: 'dashboard' | 'orders' | 'menus' | 'qr'
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'orders' | 'menus' | 'qr'>('orders');
   
   // Real-time states
   const [orders, setOrders] = useState<Order[]>([]);
@@ -191,6 +191,13 @@ export const AdminDashboard: React.FC = () => {
             <Coffee size={18} />
             Menu Katalog
           </button>
+          <button 
+            style={{ ...styles.navItem, ...(activeTab === 'qr' ? styles.navItemActive : {}) }}
+            onClick={() => setActiveTab('qr')}
+          >
+            <QrCode size={18} />
+            Meja & QR Code
+          </button>
         </nav>
 
         {/* Real-time Connection status indicator */}
@@ -213,6 +220,7 @@ export const AdminDashboard: React.FC = () => {
               {activeTab === 'dashboard' && 'Dashboard Overview'}
               {activeTab === 'orders' && 'Live Orders'}
               {activeTab === 'menus' && 'Menu Management'}
+              {activeTab === 'qr' && 'Meja & QR Code Simulator'}
             </h1>
             <p style={styles.headerSub}>Selamat bertugas hari ini! Kelola dengan efisien.</p>
           </div>
@@ -233,7 +241,7 @@ export const AdminDashboard: React.FC = () => {
         {activeTab === 'dashboard' && (
           <div style={styles.dashboardContainer} className="animate-fade">
             {/* Summary Metrics cards */}
-            <div style={styles.metricsGrid}>
+            <div className="metrics-grid" style={styles.metricsGrid}>
               <div style={styles.metricCard}>
                 <div style={{ ...styles.metricIconBox, backgroundColor: '#ecfdf5' }}>
                   <TrendingUp color="#10b981" size={24} />
@@ -341,10 +349,10 @@ export const AdminDashboard: React.FC = () => {
           <div style={styles.liveOrdersContainer} className="animate-fade">
             
             {/* Columns structure representing Kanban Lanes */}
-            <div style={styles.kanbanLayoutGrid}>
+            <div className="kanban-layout-grid" style={styles.kanbanLayoutGrid}>
               
               {/* Lane 1: Waiting Payment / Verify (Antrean Pembayaran) */}
-              <div style={styles.kanbanColumn}>
+              <div className="kanban-column" style={styles.kanbanColumn}>
                 <div style={{ ...styles.kanbanColumnHeader, borderTop: '4px solid #ef4444' }}>
                   <h3 style={styles.kanbanColumnTitle}>Verifikasi Bayar</h3>
                   <span style={styles.kanbanColumnBadge}>
@@ -430,7 +438,7 @@ export const AdminDashboard: React.FC = () => {
               </div>
 
               {/* Lane 2: Cooking Queue (Sedang Dimasak) */}
-              <div style={styles.kanbanColumn}>
+              <div className="kanban-column" style={styles.kanbanColumn}>
                 <div style={{ ...styles.kanbanColumnHeader, borderTop: '4px solid #f59e0b' }}>
                   <h3 style={styles.kanbanColumnTitle}>Sedang Dimasak</h3>
                   <span style={styles.kanbanColumnBadge}>
@@ -495,7 +503,7 @@ export const AdminDashboard: React.FC = () => {
               </div>
 
               {/* Lane 3: History (Selesai/Arsip hari ini) */}
-              <div style={styles.kanbanColumn}>
+              <div className="kanban-column" style={styles.kanbanColumn}>
                 <div style={{ ...styles.kanbanColumnHeader, borderTop: '4px solid #10b981' }}>
                   <h3 style={styles.kanbanColumnTitle}>Selesai Disajikan</h3>
                   <span style={styles.kanbanColumnBadge}>
@@ -625,6 +633,37 @@ export const AdminDashboard: React.FC = () => {
                   </tbody>
                 </table>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* --- VIEW 4: QR CODE GENERATOR SIMULATOR --- */}
+        {activeTab === 'qr' && (
+          <div style={styles.qrContainer} className="animate-fade">
+            <div style={styles.qrGrid}>
+              {[1, 2, 3, 4, 5, 6].map((tableNum) => {
+                const customerUrl = `${window.location.origin}/?table=${tableNum}`;
+                const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(customerUrl)}`;
+                return (
+                  <div key={tableNum} style={styles.qrCard} className="animate-slide-up">
+                    <span style={styles.qrCardTitle}>Meja {tableNum}</span>
+                    <div style={styles.qrImageContainer}>
+                      <img src={qrImageUrl} alt={`QR Code Meja ${tableNum}`} style={styles.qrImage} />
+                    </div>
+                    <p style={styles.qrInstructions}>
+                      Scan QR Code ini menggunakan HP Anda untuk mensimulasikan pemesanan di Meja {tableNum}.
+                    </p>
+                    <a 
+                      href={customerUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      style={styles.qrLinkBtn}
+                    >
+                      Buka Simulasi Menu
+                    </a>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
@@ -1168,5 +1207,67 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     gap: '12px',
     marginTop: '8px'
+  },
+  qrContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '24px'
+  },
+  qrGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+    gap: '24px'
+  },
+  qrCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: '24px',
+    padding: '24px',
+    boxShadow: '0 4px 20px rgba(94, 69, 75, 0.02)',
+    border: '1.5px solid #fcf8f7',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    textAlign: 'center',
+    gap: '16px'
+  },
+  qrCardTitle: {
+    fontSize: '1.2rem',
+    fontWeight: '800',
+    color: '#5e454b',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px'
+  },
+  qrImageContainer: {
+    backgroundColor: '#f9fafb',
+    padding: '16px',
+    borderRadius: '16px',
+    border: '1.5px solid #f3f4f6',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  qrImage: {
+    width: '160px',
+    height: '160px',
+    display: 'block'
+  },
+  qrInstructions: {
+    fontSize: '0.82rem',
+    color: '#6b7280',
+    lineHeight: '1.4',
+    margin: 0
+  },
+  qrLinkBtn: {
+    display: 'inline-block',
+    width: '100%',
+    padding: '12px',
+    backgroundColor: '#ffeef2',
+    color: '#5e454b',
+    borderRadius: '12px',
+    fontWeight: '700',
+    fontSize: '0.85rem',
+    textDecoration: 'none',
+    transition: 'all 0.15s ease',
+    border: '1px solid #fad2e1'
   }
 };

@@ -336,3 +336,84 @@ input:checked + .slider:before {
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
 }
+
+/* Admin Dashboard Responsiveness */
+@media (max-width: 1024px) {
+  .admin-layout {
+    grid-template-columns: 1fr !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .admin-layout aside {
+    height: auto !important;
+    position: relative !important;
+    border-right: none !important;
+    border-bottom: 1.5px solid #f3e9e7 !important;
+    padding: 16px 20px !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+  }
+
+  .admin-layout aside > div:first-child {
+    margin-bottom: 12px !important;
+    justify-content: center !important;
+  }
+
+  .admin-layout aside nav {
+    flex-direction: row !important;
+    width: 100% !important;
+    overflow-x: auto !important;
+    padding-bottom: 8px !important;
+    gap: 8px !important;
+  }
+
+  .admin-layout aside nav button {
+    flex: 1 !important;
+    padding: 10px 14px !important;
+    border-radius: 12px !important;
+    font-size: 0.82rem !important;
+    white-space: nowrap !important;
+    justify-content: center !important;
+  }
+
+  .admin-layout aside > div:last-child {
+    display: none !important; /* Hide Connection status indicator on tablet/mobile sidebar */
+  }
+
+  .admin-layout main {
+    padding: 20px !important;
+    max-height: none !important;
+  }
+
+  .admin-layout header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 16px !important;
+    margin-bottom: 24px !important;
+  }
+
+  .admin-layout header > div:last-child {
+    width: 100% !important;
+  }
+
+  .admin-layout header button {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+  .metrics-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  .kanban-layout-grid {
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
+  }
+
+  .kanban-column {
+    max-height: 600px !important; /* Cap height on mobile for scrollable cards */
+  }
+}
+
