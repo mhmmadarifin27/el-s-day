@@ -2,14 +2,14 @@ import { useState, useEffect } from 'react';
 import { CustomerApp } from './pages/CustomerApp';
 import { AdminDashboard } from './pages/AdminDashboard';function App() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
-  const [tableNumber, setTableNumber] = useState('4');
+  const [tableNumber, setTableNumber] = useState('');
 
   // Detect path changes and query strings
   useEffect(() => {
     const handleLocationChange = () => {
       setCurrentPath(window.location.pathname);
       const params = new URLSearchParams(window.location.search);
-      setTableNumber(params.get('table') || '4');
+      setTableNumber(params.get('table') || '');
     };
 
     // Parse initially

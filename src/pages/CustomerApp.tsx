@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Coffee, Utensils, Cookie, IceCream, ShoppingCart, 
   ArrowLeft, Plus, Minus, FileText, CheckCircle2, 
-  Clock, CreditCard, Sparkles, Upload, Trash2, Edit3 
+  Clock, CreditCard, Sparkles, Upload, Trash2, Edit3, QrCode
 } from 'lucide-react';
 import { db } from '../services/db';
 import type { MenuItem, Order } from '../services/db';
@@ -17,7 +17,7 @@ export const CustomerApp: React.FC<CustomerAppProps> = ({ tableFromUrl }) => {
   
   // Form State
   const [customerName, setCustomerName] = useState('');
-  const [tableNumber, setTableNumber] = useState(tableFromUrl || '4');
+  const [tableNumber, setTableNumber] = useState(tableFromUrl || '');
   
   // E-Menu State
   const [menus, setMenus] = useState<MenuItem[]>([]);
@@ -244,43 +244,74 @@ export const CustomerApp: React.FC<CustomerAppProps> = ({ tableFromUrl }) => {
         <div style={styles.welcomePage}>
           <div style={styles.heroCenter}>
             <div style={styles.coffeeIconCircle}>
-              <Coffee size={42} color="#5e454b" />
+              {tableNumber ? <Coffee size={42} color="#5e454b" /> : <QrCode size={42} color="#5e454b" />}
             </div>
-            <h1 style={styles.welcomeTitle}>Selamat Datang!</h1>
-            <p style={styles.welcomeSubtitle}>El's Day Café siap menemani hari Anda.</p>
+            <h1 style={styles.welcomeTitle}>{tableNumber ? 'Selamat Datang!' : 'Scan QR Code Meja'}</h1>
+            <p style={styles.welcomeSubtitle}>
+              {tableNumber ? "El's Day Café siap menemani hari Anda." : 'Silakan pindai QR Code di meja Anda untuk memulai pemesanan E-Menu.'}
+            </p>
           </div>
 
-          <div style={styles.welcomeCard} className="animate-slide-up">
-            <div style={styles.tableBadge}>
-              <Sparkles size={14} color="#5e454b" style={{ marginRight: '6px' }} />
-              Meja {tableNumber}
-            </div>
-
-            <div className="form-group" style={{ marginTop: '16px' }}>
-              <label className="form-label" htmlFor="customer-name">Nama Pelanggan</label>
-              <div className="input-icon-wrapper">
-                <input 
-                  id="customer-name"
-                  type="text" 
-                  className="input-field input-field-with-icon" 
-                  placeholder="Masukkan nama Anda..."
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                />
-                <span className="input-icon">👤</span>
+          {!tableNumber ? (
+            <div style={styles.welcomeCard} className="animate-slide-up">
+              <p style={{ fontSize: '0.85rem', color: '#6b7280', textAlign: 'center', lineHeight: '1.5', margin: '0 0 16px 0' }}>
+                <strong>Petunjuk Pengetesan Simulator:</strong><br />
+                Buka <strong>Dashboard Admin</strong> di perangkat/tab lain, lalu masuk ke menu <strong>"Meja & QR Code"</strong> dan scan barcode meja (atau klik 'Buka Simulasi Menu').
+              </p>
+              
+              <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: '16px', width: '100%' }}>
+                <label className="form-label" style={{ textAlign: 'center', display: 'block', marginBottom: '8px', fontWeight: '700' }}>
+                  Atau pilih nomor meja secara manual untuk uji cepat:
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                  {[1, 2, 3, 4, 5, 6].map((num) => (
+                    <button
+                      key={num}
+                      className="btn btn-outline"
+                      style={{ padding: '8px', fontSize: '0.82rem', borderRadius: '10px', border: '1.5px solid #5e454b', fontWeight: '700' }}
+                      onClick={() => {
+                        window.location.search = `?table=${num}`;
+                      }}
+                    >
+                      Meja {num}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
+          ) : (
+            <div style={styles.welcomeCard} className="animate-slide-up">
+              <div style={styles.tableBadge}>
+                <Sparkles size={14} color="#5e454b" style={{ marginRight: '6px' }} />
+                Meja {tableNumber}
+              </div>
 
-            <button 
-              className={`btn btn-primary ${!customerName.trim() ? 'btn-disabled' : ''}`}
-              style={{ width: '100%', marginTop: '8px' }}
-              disabled={!customerName.trim()}
-              onClick={() => setView('menu')}
-            >
-              Buka Menu
-              <span style={{ fontSize: '1.2rem', marginLeft: '4px' }}>→</span>
-            </button>
-          </div>
+              <div className="form-group" style={{ marginTop: '16px' }}>
+                <label className="form-label" htmlFor="customer-name">Nama Pelanggan</label>
+                <div className="input-icon-wrapper">
+                  <input 
+                    id="customer-name"
+                    type="text" 
+                    className="input-field input-field-with-icon" 
+                    placeholder="Masukkan nama Anda..."
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                  />
+                  <span className="input-icon">👤</span>
+                </div>
+              </div>
+
+              <button 
+                className={`btn btn-primary ${!customerName.trim() ? 'btn-disabled' : ''}`}
+                style={{ width: '100%', marginTop: '8px' }}
+                disabled={!customerName.trim()}
+                onClick={() => setView('menu')}
+              >
+                Buka Menu
+                <span style={{ fontSize: '1.2rem', marginLeft: '4px' }}>→</span>
+              </button>
+            </div>
+          )}
         </div>
       )}
 
