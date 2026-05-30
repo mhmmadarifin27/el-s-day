@@ -149,6 +149,270 @@ export const AdminDashboard: React.FC = () => {
     return 'Rp ' + num.toLocaleString('id-ID');
   };
 
+  const handleExportExcel = () => {
+    const printDate = new Date().toLocaleString('id-ID');
+    let csvContent = '\uFEFF'; // UTF-8 BOM so Excel opens with proper Indonesian formatting
+    csvContent += `"LAPORAN PENJUALAN EL'S DAY CAFE"\n`;
+    csvContent += `"Tanggal Cetak:","${printDate}"\n\n`;
+    
+    csvContent += `"RINGKASAN METRIK"\n`;
+    csvContent += `"Total Pendapatan:","Rp ${totalRevenue.toLocaleString('id-ID')}"\n`;
+    csvContent += `"Meja Terisi:","${occupiedTables}"\n`;
+    csvContent += `"Antrean Aktif:","${activeQueue}"\n\n`;
+    
+    csvContent += `"ID Pesanan","Meja","Nama Pelanggan","Metode Pembayaran","Status","Waktu Pesan","Total Tagihan"\n`;
+    
+    orders.forEach(order => {
+      const dateStr = new Date(order.created_at).toLocaleString('id-ID');
+      const statusMap: Record<string, string> = {
+        waiting_payment: 'Menunggu Pembayaran',
+        checking_payment: 'Verifikasi Bayar',
+        paid: 'Sedang Dimasak',
+        completed: 'Selesai Disajikan',
+        cancelled: 'Dibatalkan'
+      };
+      const statusIndo = statusMap[order.status] || order.status;
+      const paymentMap: Record<string, string> = {
+        cash: 'Tunai',
+        transfer: 'Transfer Bank'
+      };
+      const paymentIndo = paymentMap[order.payment_method] || order.payment_method;
+      
+      csvContent += `"${order.id}","Meja ${order.table_number}","${order.customer_name}","${paymentIndo}","${statusIndo}","${dateStr}","Rp ${order.total_price.toLocaleString('id-ID')}"\n`;
+    });
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `Laporan_Penjualan_Els_Day_${new Date().toISOString().slice(0,10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleExportPDF = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    
+    const printDate = new Date().toLocaleString('id-ID');
+    const completedOrdersCount = orders.filter(o => o.status === 'completed').length;
+    
+    const orderRowsHtml = orders.map((order, idx) => {
+      const dateStr = new Date(order.created_at).toLocaleString('id-ID');
+      const statusMap: Record<string, string> = {
+        waiting_payment: 'Menunggu Bayar',
+        checking_payment: 'Verifikasi Bayar',
+        paid: 'Sedang Dimasak',
+        completed: 'Selesai',
+        cancelled: 'Batal'
+      };
+      const paymentMap: Record<string, string> = {
+        cash: 'Tunai',
+        transfer: 'Transfer'
+      };
+      
+      return `
+        <tr>
+          <td>${idx + 1}</td>
+          <td>Meja ${order.table_number}</td>
+          <td><strong>${order.customer_name}</strong></td>
+          <td>${paymentMap[order.payment_method] || order.payment_method}</td>
+          <td><span class="status-badge ${order.status}">${statusMap[order.status] || order.status}</span></td>
+          <td>${dateStr}</td>
+          <td align="right"><strong>Rp ${order.total_price.toLocaleString('id-ID')}</strong></td>
+        </tr>
+      `;
+    }).join('');
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Laporan Penjualan - El's Day Cafe</title>
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap');
+            body {
+              font-family: 'Outfit', sans-serif;
+              color: #5e454b;
+              padding: 40px;
+              margin: 0;
+            }
+            .header-container {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              border-bottom: 3px double #fad2e1;
+              padding-bottom: 20px;
+              margin-bottom: 30px;
+            }
+            .logo-box {
+              display: flex;
+              align-items: center;
+              gap: 16px;
+            }
+            .logo-img {
+              width: 60px;
+              height: 60px;
+              border-radius: 50%;
+              border: 2px solid #fad2e1;
+              object-fit: cover;
+            }
+            .title-area h1 {
+              font-size: 1.8rem;
+              margin: 0 0 4px 0;
+              font-weight: 800;
+              color: #5e454b;
+            }
+            .title-area p {
+              font-size: 0.85rem;
+              margin: 0;
+              color: #6b7280;
+            }
+            .print-meta {
+              text-align: right;
+              font-size: 0.85rem;
+              color: #6b7280;
+            }
+            .summary-grid {
+              display: grid;
+              grid-template-columns: repeat(3, 1fr);
+              gap: 20px;
+              margin-bottom: 30px;
+            }
+            .summary-card {
+              background-color: #fcf8f7;
+              border: 1.5px solid #ffeef2;
+              border-radius: 16px;
+              padding: 16px;
+              text-align: center;
+            }
+            .summary-card span {
+              font-size: 0.75rem;
+              text-transform: uppercase;
+              color: #9ca3af;
+              font-weight: 600;
+              letter-spacing: 0.5px;
+            }
+            .summary-card h3 {
+              font-size: 1.4rem;
+              margin: 6px 0 0 0;
+              color: #5e454b;
+              font-weight: 800;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-top: 20px;
+            }
+            th {
+              background-color: #ffeef2;
+              color: #5e454b;
+              font-weight: 700;
+              font-size: 0.85rem;
+              text-transform: uppercase;
+              padding: 12px;
+              border-bottom: 2px solid #fad2e1;
+              text-align: left;
+            }
+            td {
+              padding: 12px;
+              border-bottom: 1px solid #f3f4f6;
+              font-size: 0.88rem;
+              color: #5e454b;
+            }
+            tr:nth-child(even) {
+              background-color: #fafafa;
+            }
+            .status-badge {
+              padding: 4px 8px;
+              border-radius: 6px;
+              font-size: 0.7rem;
+              font-weight: 700;
+              text-transform: uppercase;
+            }
+            .status-badge.completed { background-color: #ecfdf5; color: #10b981; }
+            .status-badge.waiting_payment { background-color: #fffdf5; color: #f59e0b; }
+            .status-badge.checking_payment { background-color: #eff6ff; color: #3b82f6; }
+            .status-badge.paid { background-color: #f5f3ff; color: #8b5cf6; }
+            .status-badge.cancelled { background-color: #fef2f2; color: #ef4444; }
+            
+            .footer-note {
+              margin-top: 40px;
+              text-align: center;
+              font-size: 0.8rem;
+              color: #9ca3af;
+              border-top: 1px dashed #e5e7eb;
+              padding-top: 20px;
+            }
+            @media print {
+              body { padding: 0; }
+              button { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header-container">
+            <div class="logo-box">
+              <img src="/logo.jpg" class="logo-img" alt="Logo" />
+              <div class="title-area">
+                <h1>El's Day Café & Pastry</h1>
+                <p>Laporan Transaksi Harian Cafe & Reservasi</p>
+              </div>
+            </div>
+            <div class="print-meta">
+              <p>Dicetak pada:<br><strong>${printDate}</strong></p>
+            </div>
+          </div>
+          
+          <div class="summary-grid">
+            <div class="summary-card">
+              <span>Total Pendapatan</span>
+              <h3>Rp ${totalRevenue.toLocaleString('id-ID')}</h3>
+            </div>
+            <div class="summary-card">
+              <span>Transaksi Sukses</span>
+              <h3>${completedOrdersCount} Pesanan</h3>
+            </div>
+            <div class="summary-card">
+              <span>Meja Terisi</span>
+              <h3>${occupiedTables} Meja</h3>
+            </div>
+          </div>
+          
+          <h2>Daftar Transaksi Hari Ini</h2>
+          <table>
+            <thead>
+              <tr>
+                <th width="40">No</th>
+                <th>Meja</th>
+                <th>Nama Pelanggan</th>
+                <th>Metode Bayar</th>
+                <th>Status</th>
+                <th>Waktu</th>
+                <th align="right">Tagihan</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${orderRowsHtml}
+            </tbody>
+          </table>
+          
+          <div class="footer-note">
+            <p>Laporan Penjualan Resmi El's Day Café & Pastry. Terima kasih atas kerja keras hari ini!</p>
+          </div>
+          
+          <script>
+            window.onload = function() {
+              window.print();
+            }
+          </script>
+        </body>
+      </html>
+    `);
+    
+    printWindow.document.close();
+  };
+
   return (
     <div className="admin-layout animate-fade">
       {/* Sidebar Panel */}
@@ -228,6 +492,49 @@ export const AdminDashboard: React.FC = () => {
           </div>
           
           <div style={styles.headerToolbar}>
+            {activeTab === 'dashboard' && (
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button 
+                  className="btn btn-primary"
+                  style={{ 
+                    backgroundColor: '#5e454b', 
+                    color: '#ffffff',
+                    padding: '8px 16px',
+                    fontSize: '0.82rem',
+                    borderRadius: '10px',
+                    fontWeight: '700',
+                    border: 'none',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    boxShadow: '0 4px 12px rgba(94, 69, 75, 0.15)'
+                  }}
+                  onClick={handleExportPDF}
+                >
+                  📄 Cetak PDF
+                </button>
+                <button 
+                  className="btn btn-outline"
+                  style={{ 
+                    border: '1.5px solid #5e454b',
+                    color: '#5e454b',
+                    backgroundColor: '#ffffff',
+                    padding: '8px 16px',
+                    fontSize: '0.82rem',
+                    borderRadius: '10px',
+                    fontWeight: '700',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                  onClick={handleExportExcel}
+                >
+                  📊 Ekspor Excel
+                </button>
+              </div>
+            )}
             <button 
               className="btn btn-outline"
               style={styles.soundToggleBtn}
